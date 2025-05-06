@@ -2,7 +2,7 @@
 
 This document explains the complete data processing pipeline divided into two main phases: **Data Cleaning** and **Feature Engineering**.
 
-## Phase 1: Data Cleaning (data_cleaning.ipynb)
+## Phase 1: Data Cleaning (Data-cleaning.ipynb)
 
 The data cleaning notebook transforms raw datasets into a clean, structured format ready for analysis.
 
@@ -121,7 +121,7 @@ log.info("Saved %s", CLEAN_PATH)
 ```
 Exports the cleaned dataset to a CSV file without including row indices, creating a file ready for the feature engineering phase.
 
-## Phase 2: Feature Engineering (feature_engineering.ipynb)
+## Phase 2: Feature Engineering (Feature-engineering.ipynb)
 
 The feature engineering notebook transforms clean data into enriched features for analysis and modeling.
 
