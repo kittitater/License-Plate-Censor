@@ -1,0 +1,108 @@
+# %% [markdown]
+# # 🧹 IMDb 25 k – Cleaning Pipeline  
+# *Generates `imdb_clean.csv` – tidy, type‑correct, deduplicated.*
+
+# %% [code]
+import pandas as pd, numpy as np, re, ast, logging
+from typing import List
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
+log = logging.getLogger("clean")
+
+RAW_PATH   = "25k IMDb movie Dataset.csv"
+CLEAN_PATH = "imdb_clean.csv"
+
+# %% [markdown]
+# ## 1  Load raw dataset & inspect
+
+# %% [code]
+df = pd.read_csv(RAW_PATH)
+display(df.head(3)); display(df.info())
+
+# %% [markdown]
+# ## 2  Column hygiene – snake_case + typo fixes
+
+# %% [code]
+df.columns = (df.columns
+                .str.strip()
+                .str.lower()
+                .str.replace(" ", "_"))
+df = df.rename(columns={"plot_kyeword": "plot_keyword",
+                        "generes": "genres"})
+
+# %% [markdown]
+# ## 3  Numeric parsing – `rating` & `votes`
+
+# %% [code]
+df["rating"] = pd.to_numeric(df["rating"], errors="coerce")
+
+def parse_votes(v):
+    if pd.isna(v): return None
+    if isinstance(v, (int, float)): return int(v)
+    v = (str(v).strip().upper()
+                    .replace(",", "")
+                    .replace("M", "000000")
+                    .replace("K", "000"))
+    try: return int(float(v))
+    except ValueError: return None
+
+df["votes"] = df["user_rating"].apply(parse_votes)
+
+# %% [markdown]
+# ## 4  ⏱️ Runtime & 💰 Budget extraction (future‑proofing!)
+
+# %% [markdown]
+# Even if the first version of your picker **doesn’t use runtime or budget**,  
+# capturing them now costs almost nothing and prevents re‑processing when someone asks:  
+# * “Filter movies under 100 min”  
+# * “Random film that cost > \$100 M”  
+
+# %% [code]
+run_re = re.compile(r"(?:(\d+)\s*hours?)?\s*(?:(\d+)\s*minutes?)?", re.I)
+
+def runtime_min(txt):
+    if pd.isna(txt): return None
+    m = run_re.search(str(txt))
+    if m and (m.group(1) or m.group(2)):
+        h = int(m.group(1) or 0); m_ = int(m.group(2) or 0)
+        return h*60 + m_
+    try: return int(float(str(txt).replace(",", "")))
+    except ValueError: return None
+
+def budget_usd(txt):
+    if pd.isna(txt): return None
+    m = re.search(r"\$([\d,]+)", str(txt))
+    return int(m.group(1).replace(",", "")) if m else None
+
+df["runtime_min"] = df["run_time"].apply(runtime_min)
+df["budget_usd"]  = df["run_time"].apply(budget_usd)
+
+# %% [markdown]
+# ## 5  Fix `year` and convert stringified lists
+
+# %% [code]
+df["year"] = (pd.to_numeric(df["year"].astype(str)
+                                         .str.replace(r"[^0-9]", "", regex=True),
+                            errors="coerce")
+               .astype("Int64"))
+
+def safe_eval(x): 
+    try: return ast.literal_eval(x) if pd.notna(x) else []
+    except Exception: return []
+
+for col in ["genres", "plot_keyword", "top_5_casts"]:
+    df[col] = df[col].apply(safe_eval)
+
+# %% [markdown]
+# ## 6  Drop dirty columns & de‑duplicate
+
+# %% [code]
+df = df.drop(columns={"run_time", "overview", "path"} & set(df.columns))
+df = df.drop_duplicates(subset=["movie_title", "year"], keep="first")
+log.info("Rows after cleaning: %d", len(df))
+
+# %% [markdown]
+# ## 7  Save cleaned artefact
+
+# %% [code]
+df.to_csv(CLEAN_PATH, index=False)
+log.info("✅ Saved %s", CLEAN_PATH)

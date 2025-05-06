@@ -1,0 +1,210 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 🧹 Data Cleaning Pipeline  \n",
+    "*Generates *`cleaned-dataset.csv`* – tidy, type‑correct, deduplicated.*"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd, numpy as np, re, ast, logging\n",
+    "from typing import List\n",
+    "logging.basicConfig(level=logging.INFO, format=\"%(levelname)s | %(message)s\")\n",
+    "log = logging.getLogger(\"clean\")\n",
+    "RAW_PATH   = \"dataset.csv\"\n",
+    "CLEAN_PATH = \"cleaned-dataset.csv\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1  Load raw dataset & inspect"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv(RAW_PATH)\n",
+    "display(df.head(3)); display(df.info())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2  Column hygiene – snake_case + typo fixes"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns = (df.columns\n",
+    "                .str.strip()\n",
+    "                .str.lower()\n",
+    "                .str.replace(\" \", \"_\"))\n",
+    "df = df.rename(columns={\"plot_kyeword\": \"plot_keyword\",\n",
+    "                        \"generes\": \"genres\"})"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3  Numeric parsing – `rating` & `votes`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df[\"rating\"] = pd.to_numeric(df[\"rating\"], errors=\"coerce\")\n",
+    "def parse_votes(v):\n",
+    "    if pd.isna(v): return None\n",
+    "    if isinstance(v, (int, float)): return int(v)\n",
+    "    v = (str(v).strip().upper()\n",
+    "                    .replace(\",\", \"\")\n",
+    "                    .replace(\"M\", \"000000\")\n",
+    "                    .replace(\"K\", \"000\"))\n",
+    "    try: return int(float(v))\n",
+    "    except ValueError: return None\n",
+    "df[\"votes\"] = df[\"user_rating\"].apply(parse_votes)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4  ⏱️ Runtime & 💰 Budget extraction (future‑proofing!)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Even if the first version of your picker **doesn't use runtime or budget**,  \n",
+    "capturing them now costs almost nothing and prevents re‑processing when someone asks:  \n",
+    "* \"Filter movies under 100 min\"  \n",
+    "* \"Random film that cost > \\$100 M\"  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "run_re = re.compile(r\"(?:(\\d+)\\s*hours?)?\\s*(?:(\\d+)\\s*minutes?)?\", re.I)\n",
+    "def runtime_min(txt):\n",
+    "    if pd.isna(txt): return None\n",
+    "    m = run_re.search(str(txt))\n",
+    "    if m and (m.group(1) or m.group(2)):\n",
+    "        h = int(m.group(1) or 0); m_ = int(m.group(2) or 0)\n",
+    "        return h*60 + m_\n",
+    "    try: return int(float(str(txt).replace(\",\", \"\")))\n",
+    "    except ValueError: return None\n",
+    "def budget_usd(txt):\n",
+    "    if pd.isna(txt): return None\n",
+    "    m = re.search(r\"\\$(([\\d,]+)\", str(txt))\n",
+    "    return int(m.group(1).replace(\",\", \"\")) if m else None\n",
+    "df[\"runtime_min\"] = df[\"run_time\"].apply(runtime_min)\n",
+    "df[\"budget_usd\"]  = df[\"run_time\"].apply(budget_usd)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5  Fix `year` and convert stringified lists"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df[\"year\"] = (pd.to_numeric(df[\"year\"].astype(str)\n",
+    "                                         .str.replace(r\"[^0-9]\", \"\", regex=True),\n",
+    "                            errors=\"coerce\")\n",
+    "               .astype(\"Int64\"))\n",
+    "def safe_eval(x): \n",
+    "    try: return ast.literal_eval(x) if pd.notna(x) else []\n",
+    "    except Exception: return []\n",
+    "for col in [\"genres\", \"plot_keyword\", \"top_5_casts\"]:\n",
+    "    df[col] = df[col].apply(safe_eval)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6  Drop dirty columns & de‑duplicate"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df = df.drop(columns={\"run_time\", \"overview\", \"path\"} & set(df.columns))\n",
+    "df = df.drop_duplicates(subset=[\"movie_title\", \"year\"], keep=\"first\")\n",
+    "log.info(\"Rows after cleaning: %d\", len(df))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7  Save cleaned dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.to_csv(CLEAN_PATH, index=False)\n",
+    "log.info(\"✅ Saved %s\", CLEAN_PATH)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
