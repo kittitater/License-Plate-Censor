@@ -34,7 +34,7 @@ jobs:
             # 5) Run the new container
             docker run -d \
               --name ml-model \
-              -p 127.0.0.1:8000:80 \
+              -p 127.0.0.1:3000:80 \
               my-model:latest
 
             # 6) Now prune only dangling images
