@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Random Top Moview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 space-y-6 border border-neutral-700">
+    <h1 class="text-2xl font-semibold text-white">The Random Top Movies Model</h1>
+
+    <!-- API Endpoint Input -->
+    <div class="space-y-1">
+      <label for="apiUrl" class="text-sm text-gray-300">API Endpoint</label>
+      <input id="apiUrl" type="url" placeholder="e.g. https://api.example.com"
+        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white"
+      />
+      <div class="flex space-x-2 pt-5">
+      <div class="text-sm text-gray-300">API Health Check :</div>
+      <div id="apiStatus" class="text-sm text-gray-400"> 🔍 Waiting for API URL...</div>
+       </div>
+    </div>
+
+    <!-- Input Text Area -->
+    <div class="space-y-1">
+      <label for="inputText" class="text-sm text-gray-300">Your Input</label>
+      <textarea id="inputText" rows="5" placeholder="Enter text to send to the model..."
+        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white resize-none"
+      ></textarea>
+    </div>
+
+    <!-- Submit Button -->
+    <button id="submitBtn"
+      class="w-full bg-white text-black font-medium py-2 px-4 rounded-lg hover:bg-gray-200 transition">
+      Submit
+    </button>
+
+    <!-- Output Box -->
+    <div class="bg-neutral-800 p-4 rounded-lg border border-neutral-700">
+      <h2 class="text-lg font-semibold text-white">🧾 Output</h2>
+      <p id="outputText" class="whitespace-pre-wrap mt-2 text-gray-300">...</p>
+    </div>
+  </div>
+
+  <script>
+    const apiUrlInput = document.getElementById("apiUrl");
+    const inputText = document.getElementById("inputText");
+    const outputText = document.getElementById("outputText");
+    const submitBtn = document.getElementById("submitBtn");
+    const apiStatus = document.getElementById("apiStatus");
+
+    async function checkAPIHealth(baseUrl) {
+      const healthUrl = baseUrl.replace(/\/+$/, "") + "/health";
+      try {
+        const res = await fetch(healthUrl);
+        const data = await res.json();
+        if (data.status === "ok") {
+          apiStatus.textContent = "✅ API is healthy";
+        } else {
+          apiStatus.textContent = "⚠️ API health check failed";
+        }
+      } catch {
+        apiStatus.textContent = "❌ API unreachable";
+      }
+    }
+
+    apiUrlInput.addEventListener("blur", () => {
+      const url = apiUrlInput.value.trim();
+      if (url) {
+        apiStatus.textContent = "⏳ Checking health...";
+        checkAPIHealth(url);
+      } else {
+        apiStatus.textContent = "🔍 Waiting for API URL...";
+      }
+    });
+
+    submitBtn.addEventListener("click", async () => {
+      const apiUrl = apiUrlInput.value.trim();
+      const input = inputText.value.trim();
+
+      if (!apiUrl) {
+        outputText.textContent = "Please enter a valid API endpoint.";
+        return;
+      }
+
+      if (!input) {
+        outputText.textContent = "Please enter input text.";
+        return;
+      }
+
+      outputText.textContent = "⏳ Loading...";
+
+      try {
+        const res = await fetch(apiUrl.replace(/\/+$/, "") + "/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input }),
+        });
+
+        const data = await res.json();
+        outputText.textContent = data.output || "No output received.";
+      } catch {
+        outputText.textContent = "❌ Error connecting to the API.";
+      }
+    });
+  </script>
+</body>
+</html>
