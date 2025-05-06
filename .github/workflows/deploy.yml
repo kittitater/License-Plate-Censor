@@ -1,0 +1,44 @@
+name: Build & Deploy on EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-on-ec2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            # 1) Clone or update your app
+            if [ ! -d ~/app ]; then
+              git clone git@github.com:woradon47s/RandomTopMovie.git ~/app
+            fi
+            cd ~/app
+            git fetch origin
+            git reset --hard origin/main
+
+            # 2) Build the new Docker image
+            docker build -t my-model:latest .
+
+            # 3) Stop & remove old container if running
+            if docker ps -q -f name=ml-model; then
+              docker stop ml-model
+              docker rm   ml-model
+            fi
+
+            # 4) Prune dangling images (old builds)
+            docker image prune -af
+
+            # 5) Run the new container, binding to 127.0.0.1:8000→80
+            docker run -d \
+              --name ml-model \
+              -p 127.0.0.1:8000:80 \
+              my-model:latest
