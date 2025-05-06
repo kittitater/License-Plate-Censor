@@ -102,7 +102,33 @@ Handles data type conversions for complex fields:
 - Applies this conversion to genres, plot keywords, and cast lists
 - Uses a safe evaluation approach that handles errors gracefully
 
-### Step 6: Drop Dirty Columns & De-duplicate
+### Step 6 — Clean actor names in top_5_casts
+```python
+def clean_actor_lists(actor_list):
+    """
+    Strip whitespace, drop NaN/empty strings,
+    and return a list of cleaned actor names.
+    """
+    if not actor_list:
+        return []
+
+    cleaned = []
+    for actor in actor_list:
+        if actor and not pd.isna(actor):
+            actor_str = str(actor).strip()
+            if actor_str:
+                cleaned.append(actor_str)
+    return cleaned
+
+# Apply to every row
+df["top_5_casts"] = df["top_5_casts"].apply(clean_actor_lists)
+```
+Cleaning / Normalizing the actor list field:
+- Ensures every entry in top_5_casts is a valid non‑blank string before we later count actor frequency.
+- Eliminates the empty‑string issue that previously caused IndexError in the feature‑engineering stage.
+- Costs almost nothing now, saves debugging time later.
+
+### Step 7: Drop Dirty Columns & De-duplicate
 ```python
 df = df.drop(columns={"run_time", "overview", "path"} & set(df.columns))
 df = df.drop_duplicates(subset=["movie_title", "year"], keep="first")
@@ -114,7 +140,7 @@ Finalizes the dataset by:
 - Keeping the first occurrence of each movie
 - Logging the final row count after deduplication
 
-### Step 7: Save Cleaned Dataset
+### Step 8: Save Cleaned Dataset
 ```python
 df.to_csv(CLEAN_PATH, index=False)
 log.info("Saved %s", CLEAN_PATH)
