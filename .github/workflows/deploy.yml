@@ -29,10 +29,7 @@ jobs:
             docker build -t my-model:latest .
 
             # 3) Stop & remove old container if running
-            if docker ps -q -f name=ml-model; then
-              docker stop ml-model
-              docker rm   ml-model
-            fi
+            docker rm -f ml-model || true
 
             # 4) Prune dangling images (old builds)
             docker image prune -af
