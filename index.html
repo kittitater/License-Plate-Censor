@@ -3,30 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Random Top Moview</title>
+  <title>Random Top Movies</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-black text-white min-h-screen flex items-center justify-center p-4">
 
   <div class="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 space-y-6 border border-neutral-700">
-    <h1 class="text-2xl font-semibold text-white">The Random Top Movies Model</h1>
+    <h1 class="text-2xl font-semibold text-white">The Random Top Movies Model - API Testing</h1>
 
-    <!-- API Endpoint Input -->
+    <!-- API Base URL Input -->
     <div class="space-y-1">
-      <label for="apiUrl" class="text-sm text-gray-300">API Endpoint</label>
+      <label for="apiUrl" class="text-sm text-gray-300">API Base URL</label>
       <input id="apiUrl" type="url" placeholder="e.g. https://api.example.com"
         class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white"
       />
-      <div class="flex space-x-2 pt-5">
-      <div class="text-sm text-gray-300">API Health Check :</div>
-      <div id="apiStatus" class="text-sm text-gray-400"> 🔍 Waiting for API URL...</div>
-       </div>
+    </div>
+
+    <!-- Health Status -->
+    <div class="flex space-x-2 pt-2">
+      <div class="text-sm text-gray-300">API Health Check:</div>
+      <div id="apiStatus" class="text-sm text-gray-400">🔍 Waiting for API URL...</div>
+    </div>
+
+    <!-- API Path Input -->
+    <div class="space-y-1">
+      <label for="apiPath" class="text-sm text-gray-300">Model Input API Path</label>
+      <input id="apiPath" type="text" placeholder="e.g. /predict"
+        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white"
+      />
     </div>
 
     <!-- Input Text Area -->
     <div class="space-y-1">
-      <label for="inputText" class="text-sm text-gray-300">Your Input</label>
-      <textarea id="inputText" rows="5" placeholder="Enter text to send to the model..."
+      <label for="inputText" class="text-sm text-gray-300">Your Model Input</label>
+      <textarea id="inputText" rows="2" placeholder="Enter text to send to the model..."
         class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white resize-none"
       ></textarea>
     </div>
@@ -46,13 +56,18 @@
 
   <script>
     const apiUrlInput = document.getElementById("apiUrl");
+    const apiPathInput = document.getElementById("apiPath");
     const inputText = document.getElementById("inputText");
     const outputText = document.getElementById("outputText");
     const submitBtn = document.getElementById("submitBtn");
     const apiStatus = document.getElementById("apiStatus");
 
+    function joinUrl(base, path) {
+      return base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");
+    }
+
     async function checkAPIHealth(baseUrl) {
-      const healthUrl = baseUrl.replace(/\/+$/, "") + "/health";
+      const healthUrl = joinUrl(baseUrl, "/health");
       try {
         const res = await fetch(healthUrl);
         const data = await res.json();
@@ -78,10 +93,11 @@
 
     submitBtn.addEventListener("click", async () => {
       const apiUrl = apiUrlInput.value.trim();
+      const apiPath = apiPathInput.value.trim();
       const input = inputText.value.trim();
 
-      if (!apiUrl) {
-        outputText.textContent = "Please enter a valid API endpoint.";
+      if (!apiUrl || !apiPath) {
+        outputText.textContent = "Please enter both API base URL and path.";
         return;
       }
 
@@ -90,17 +106,18 @@
         return;
       }
 
+      const fullUrl = joinUrl(apiUrl, apiPath);
       outputText.textContent = "⏳ Loading...";
 
       try {
-        const res = await fetch(apiUrl.replace(/\/+$/, "") + "/predict", {
+        const res = await fetch(fullUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input }),
         });
 
         const data = await res.json();
-        outputText.textContent = data.output || "No output received.";
+        outputText.textContent = data.output || JSON.stringify(data, null, 2) || "No output received.";
       } catch {
         outputText.textContent = "❌ Error connecting to the API.";
       }

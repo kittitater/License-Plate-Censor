@@ -19,7 +19,7 @@ jobs:
 
             # 1) Clone or update your app
             if [ ! -d ~/app ]; then
-              git clone git@github.com:woradon47s/RandomTopMovie.git ~/app
+              git clone git@github.com:kittitater/RandomTopMovie.git ~/app
             fi
             cd ~/app
             git fetch origin
