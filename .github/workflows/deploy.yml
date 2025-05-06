@@ -31,11 +31,12 @@ jobs:
             # 3) Stop & remove old container if running
             docker rm -f ml-model || true
 
-            # 4) Prune dangling images (old builds)
-            docker image prune -af
-
-            # 5) Run the new container, binding to 127.0.0.1:8000→80
+            # 5) Run the new container
             docker run -d \
               --name ml-model \
               -p 127.0.0.1:8000:80 \
               my-model:latest
+
+            # 6) Now prune only dangling images
+            docker image prune -f
+
