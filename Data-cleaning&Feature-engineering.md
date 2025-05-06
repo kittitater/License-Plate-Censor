@@ -197,15 +197,63 @@ Optimizes keyword features:
 
 ### Step 5: Actor & Director Indicator Columns
 ```python
+
+norm_ascii  = lambda s: "".join(
+    c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+)                       # strip accents → “René” → “Rene”
+clean_token = lambda s: re.sub(r"[^a-z0-9_]", "", s.lower())  # drop punctuation
+
+# Track used column names to avoid collisions
+used_cols = set(hq.columns)
+
+# ---------------------------  Actors  -----------------------------
 actor_freq = Counter(itertools.chain.from_iterable(hq["top_5_casts"]))
-top_actors = {a for a,_ in actor_freq.most_common(TOP_ACTORS_N)}
-for a in top_actors:
-    col = f"actor_{a.split()[-1].lower()}"
-    hq[col] = hq["top_5_casts"].apply(lambda lst: int(a in lst))
+top_actors = [a for a, _ in actor_freq.most_common(TOP_ACTORS_N)]
+
+for actor in top_actors:
+    if not isinstance(actor, str) or not actor.strip():
+        continue  # skip NaN / empty
+    
+    # Use last token of name → “Tom Cruise” → “cruise”
+    last = clean_token(norm_ascii(actor).split()[-1])
+    if not last:
+        continue
+    col = f"actor_{last}"
+
+    # Ensure uniqueness if two actors share a last name
+    suffix = 1
+    while col in used_cols:
+        col = f"{col}_{suffix}"
+        suffix += 1
+    used_cols.add(col)
+    
+    # Vectorised membership mask, stored as int8 to save memory
+    hq[col] = hq["top_5_casts"].apply(lambda lst, a=actor: int(a in lst)).astype("int8")
+
+# --------------------------  Directors ----------------------------
 top_dirs = hq["director"].value_counts().head(TOP_DIRS_N).index
-for d in top_dirs:
-    col = f"director_{d.split()[-1].lower()}"
-    hq[col] = (hq["director"] == d).astype(int)
+
+for director in top_dirs:
+    if not isinstance(director, str) or not director.strip():
+        continue
+    
+    last = clean_token(norm_ascii(director).split()[-1])
+    if not last:
+        continue
+    col = f"director_{last}"
+
+    suffix = 1
+    while col in used_cols:
+        col = f"{col}_{suffix}"
+        suffix += 1
+    used_cols.add(col)
+    
+    # Binary flag: 1 if this row’s director matches
+    hq[col] = (hq["director"] == director).astype("int8")
+
+print("Added",
+      sum(c.startswith("actor_")    for c in used_cols),    "actor columns &",
+      sum(c.startswith("director_") for c in used_cols), "director columns")
 ```
 Creates robust binary flags for top on‑screen and behind‑camera talent:
 
