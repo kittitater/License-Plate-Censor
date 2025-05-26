@@ -6,3 +6,6 @@ PlateImage/
 # Ignore any .rar files with these names
 synthetic_data.rar
 LicensePlate.rar
+
+*.zip
+*.rar
