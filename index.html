@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>License Plate Sensoring</title>
+  <title>License Plate Censor - Testing Client </title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-black text-white min-h-screen p-6 font-sans">
@@ -11,7 +11,7 @@
   <div class="w-full max-w-screen-2xl mx-auto grid grid-cols-10 gap-6">
     <!-- LEFT COLUMN -->
     <div class="col-span-10 md:col-span-4 space-y-6 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
-      <h1 class="text-2xl font-semibold tracking-tight">License Plate Sensoring</h1>
+      <h1 class="text-2xl font-semibold tracking-tight">License Plate Censor - Testing Client</h1>
       <p class="text-sm text-gray-400">Test your API endpoint with image input</p>
 
       <!-- API Base URL -->
@@ -64,7 +64,7 @@
     <div class="col-span-10 md:col-span-6 space-y-10 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
       <!-- Original Image -->
       <div>
-        <h2 class="text-lg font-semibold mb-2">🖼️ Original Image ( without license censored )</h2>
+        <h2 class="text-lg font-semibold mb-2">🖼️ Uploaded Image ( without license censored )</h2>
         <img id="previewImage"
           class="max-w-full max-h-[350px] rounded-xl border border-gray-600 cursor-pointer object-contain mx-auto hidden"
           alt="Uploaded Image" />
@@ -72,13 +72,23 @@
 
       <!-- Output Image -->
       <div id="outputContainer" class="hidden">
-        <h2 class="text-lg font-semibold mb-2">🛡️ License Sensored Image</h2>
+        <h2 class="text-lg font-semibold mb-2">🛡️ License Censored Image</h2>
         <img id="outputImage"
           class="max-w-full max-h-[350px] rounded-xl border border-gray-600 cursor-pointer object-contain mx-auto"
           alt="Processed Output Image" />
       </div>
     </div>
+
+
+
+
+
   </div>
+  <footer class=" rounded-lg shadow-sm dark:bg-gray-900 m-4">
+        <hr class="mt-6 border-gray-600 sm:mx-auto dark:border-gray-700 lg:mt-8 lg:mb-6" />
+        <span class="block text-sm text-gray-600 sm:text-center dark:text-gray-400">© 2025 <a href="https://kittitater.github.io/License-Plate-Sensoring/" class="hover:underline">License Plate Censor™</a>. All Rights Reserved.</span>
+    </div>
+</footer>
 
   <!-- Modal -->
   <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-90">
