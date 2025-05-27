@@ -3,64 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Random Top Movies</title>
+  <title>License Plate Sensoring</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-white min-h-screen flex items-center justify-center p-4">
+<body class="bg-black text-white min-h-screen p-6 font-sans">
 
-  <div class="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 space-y-6 border border-neutral-700">
-    <h1 class="text-2xl font-semibold text-white">The Random Top Movies Model - API Testing</h1>
+  <div class="w-full max-w-screen-2xl mx-auto grid grid-cols-10 gap-6">
+    <!-- LEFT COLUMN -->
+    <div class="col-span-10 md:col-span-4 space-y-6 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
+      <h1 class="text-2xl font-semibold tracking-tight">License Plate Sensoring</h1>
+      <p class="text-sm text-gray-400">Test your API endpoint with image input</p>
 
-    <!-- API Base URL Input -->
-    <div class="space-y-1">
-      <label for="apiUrl" class="text-sm text-gray-300">API Base URL</label>
-      <input id="apiUrl" type="url" placeholder="e.g. https://api.example.com"
-        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white"
-      />
+      <!-- API Base URL -->
+      <div class="space-y-1.5">
+        <label for="apiUrl" class="text-sm font-medium text-gray-300">API Base URL</label>
+        <input id="apiUrl" type="url" placeholder="e.g. https://api.example.com"
+          class="w-full rounded-lg border border-zinc-700 bg-neutral-800 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-white"
+        />
+      </div>
+
+      <!-- API Health -->
+      <div class="flex items-center space-x-2 text-sm">
+        <span class="text-gray-300">API Health Check:</span>
+        <span id="apiStatus" class="text-gray-400">🔍 Waiting for API URL...</span>
+      </div>
+
+      <!-- API Path + Upload Image (50:50 side-by-side layout) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Model API Path -->
+        <div class="space-y-1.5">
+          <label for="apiPath" class="text-sm font-medium text-gray-300">Model API Path</label>
+          <input id="apiPath" type="text" placeholder="/predict"
+            class="w-full rounded-lg border border-zinc-700 bg-neutral-800 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-white"
+          />
+        </div>
+
+        <!-- Upload Image -->
+        <div class="space-y-1.5 ">
+          <label for="imageInput" class="text-sm font-medium text-gray-300">Upload Image</label>
+          <div class="relative">
+            <input id="imageInput" type="file" accept="image/*"
+              class="absolute inset-0 opacity-0 cursor-pointer items-center"
+            />
+            <div
+              class="bg-white text-black text-sm font-medium text-center py-2 px-4 rounded-lg cursor-pointer hover:bg-gray-300 transition">
+              Choose File
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button id="submitBtn"
+        class="w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-gray-300">
+        Submit
+      </button>
     </div>
 
-    <!-- Health Status -->
-    <div class="flex space-x-2 pt-2">
-      <div class="text-sm text-gray-300">API Health Check:</div>
-      <div id="apiStatus" class="text-sm text-gray-400">🔍 Waiting for API URL...</div>
-    </div>
+    <!-- RIGHT COLUMN -->
+    <div class="col-span-10 md:col-span-6 space-y-10 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
+      <!-- Original Image -->
+      <div>
+        <h2 class="text-lg font-semibold mb-2">🖼️ Original Image</h2>
+        <img id="previewImage"
+          class="max-w-full max-h-[350px] rounded-lg border border-gray-600 cursor-pointer object-contain mx-auto hidden"
+          alt="Uploaded Image" />
+      </div>
 
-    <!-- API Path Input -->
-    <div class="space-y-1">
-      <label for="apiPath" class="text-sm text-gray-300">Model Input API Path</label>
-      <input id="apiPath" type="text" placeholder="e.g. /predict"
-        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white"
-      />
+      <!-- Output Image -->
+      <div id="outputContainer" class="hidden">
+        <h2 class="text-lg font-semibold mb-2">🛡️ Sensored Image</h2>
+        <img id="outputImage"
+          class="max-w-full max-h-[350px] rounded-lg border border-gray-600 cursor-pointer object-contain mx-auto"
+          alt="Processed Output Image" />
+      </div>
     </div>
+  </div>
 
-    <!-- Input Text Area -->
-    <div class="space-y-1">
-      <label for="inputText" class="text-sm text-gray-300">Your Model Input</label>
-      <textarea id="inputText" rows="2" placeholder="Enter text to send to the model..."
-        class="w-full p-3 rounded-lg text-white bg-neutral-800 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-white resize-none"
-      ></textarea>
-    </div>
-
-    <!-- Submit Button -->
-    <button id="submitBtn"
-      class="w-full bg-white text-black font-medium py-2 px-4 rounded-lg hover:bg-gray-200 transition">
-      Submit
-    </button>
-
-    <!-- Output Box -->
-    <div class="bg-neutral-800 p-4 rounded-lg border border-neutral-700">
-      <h2 class="text-lg font-semibold text-white">🧾 Output</h2>
-      <p id="outputText" class="whitespace-pre-wrap mt-2 text-gray-300">...</p>
-    </div>
+  <!-- Modal -->
+  <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-90">
+    <img id="modalImage" class="max-w-[90%] max-h-[90%] rounded-xl border border-white shadow-lg" />
   </div>
 
   <script>
     const apiUrlInput = document.getElementById("apiUrl");
     const apiPathInput = document.getElementById("apiPath");
-    const inputText = document.getElementById("inputText");
-    const outputText = document.getElementById("outputText");
+    const imageInput = document.getElementById("imageInput");
+    const previewImage = document.getElementById("previewImage");
+    const outputImage = document.getElementById("outputImage");
+    const outputContainer = document.getElementById("outputContainer");
     const submitBtn = document.getElementById("submitBtn");
     const apiStatus = document.getElementById("apiStatus");
+    const modal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
 
     function joinUrl(base, path) {
       return base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");
@@ -71,11 +106,7 @@
       try {
         const res = await fetch(healthUrl);
         const data = await res.json();
-        if (data.status === "ok") {
-          apiStatus.textContent = "✅ API is healthy";
-        } else {
-          apiStatus.textContent = "⚠️ API health check failed";
-        }
+        apiStatus.textContent = data.status === "ok" ? "✅ API is running" : "⚠️ API health check failed";
       } catch {
         apiStatus.textContent = "❌ API unreachable";
       }
@@ -91,37 +122,63 @@
       }
     });
 
+    imageInput.addEventListener("change", () => {
+      const file = imageInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImage.src = e.target.result;
+          previewImage.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImage.classList.add("hidden");
+      }
+    });
+
     submitBtn.addEventListener("click", async () => {
       const apiUrl = apiUrlInput.value.trim();
       const apiPath = apiPathInput.value.trim();
-      const input = inputText.value.trim();
+      const file = imageInput.files[0];
 
       if (!apiUrl || !apiPath) {
-        outputText.textContent = "Please enter both API base URL and path.";
+        alert("Please enter both API base URL and path.");
         return;
       }
 
-      if (!input) {
-        outputText.textContent = "Please enter input text.";
+      if (!file) {
+        alert("Please select an image to upload.");
         return;
       }
 
       const fullUrl = joinUrl(apiUrl, apiPath);
-      outputText.textContent = "⏳ Loading...";
+      const formData = new FormData();
+      formData.append("file", file);
 
       try {
         const res = await fetch(fullUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input }),
+          body: formData
         });
 
-        const data = await res.json();
-        outputText.textContent = data.output || JSON.stringify(data, null, 2) || "No output received.";
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        outputImage.src = objectUrl;
+        outputContainer.classList.remove("hidden");
       } catch {
-        outputText.textContent = "❌ Error connecting to the API.";
+        alert("❌ Error uploading or receiving image from API.");
       }
     });
+
+    function openModal(src) {
+      modalImage.src = src;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    previewImage.addEventListener("click", () => openModal(previewImage.src));
+    outputImage.addEventListener("click", () => openModal(outputImage.src));
+    modal.addEventListener("click", () => modal.classList.add("hidden"));
   </script>
 </body>
 </html>
