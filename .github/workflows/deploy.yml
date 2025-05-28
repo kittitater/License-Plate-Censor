@@ -11,9 +11,10 @@ jobs:
       - name: Deploy via SSH to EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
-          host:     ${{ secrets.EC2_HOST }}
+          host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key:      ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
             set -e
 
@@ -25,18 +26,21 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            # 2) Build the new Docker image
-            docker build -t my-model:latest .
+            # 2) Debug: List files to verify presence of serve_model_API.py
+            ls -l ~/app
 
-            # 3) Stop & remove old container if running
+            # 3) Set up buildx and build the new Docker image
+            docker buildx create --use || true
+            docker buildx build -t license-censor-api:latest . || { echo "Docker build failed"; cat requirements.txt; ls -l; exit 1; }
+
+            # 4) Stop & remove old container if running
             docker rm -f ml-model || true
 
             # 5) Run the new container
             docker run -d \
               --name ml-model \
               -p 127.0.0.1:3000:80 \
-              my-model:latest
+              license-censor-api:latest
 
-            # 6) Now prune only dangling images
+            # 6) Prune only dangling images
             docker image prune -f
-

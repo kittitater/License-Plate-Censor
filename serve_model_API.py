@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # MLflow configuration
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-MODEL_NAME = os.getenv("MODEL_NAME", "YOLO_LicenseCensor")
+MODEL_NAME = os.getenv("MODEL_NAME", "YOLOv8-LicensePlate-Detection")
 CHECK_INTERVAL = int(os.getenv("MODEL_CHECK_INTERVAL", 300))  # 5 minutes
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
