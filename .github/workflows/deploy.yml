@@ -26,26 +26,29 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            # 2) Debug: List files to verify presence of serve_model_API.py
+            # 2) Debug: List files to verify presence
             ls -l ~/app
 
-            # 3) Log Docker version for debugging
+            # 3) Log Docker version
             docker --version
 
-            # 4) Build the new Docker image
+            # 4) Check MLflow server availability
+            curl -s http://127.0.0.1:5000 || echo "Warning: MLflow server not reachable"
+
+            # 5) Build the new Docker image
             docker build -t license-censor-api:latest . || { echo "Docker build failed"; cat requirements.txt; ls -l; exit 1; }
 
-            # 5) Stop & remove old container if running
+            # 6) Stop & remove old container if running
             docker rm -f ml-model || true
 
-            # 6) Run the new container
+            # 7) Run the new container with host network
             docker run -d \
               --name ml-model \
-              -p 127.0.0.1:3000:80 \
-              license-censor-api:latest
+              --network host \
+              license-censor-api:latest || { echo "Container failed to start"; docker logs ml-model; exit 1; }
 
-            # 7) Log container status
+            # 8) Log container status
             docker ps -a
 
-            # 8) Prune only dangling images
+            # 9) Prune only dangling images
             docker image prune -f
