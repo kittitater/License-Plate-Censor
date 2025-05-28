@@ -30,7 +30,7 @@ def load_latest_model():
     global current_model, current_version
     client = mlflow.tracking.MlflowClient()
     try:
-        # Search for all versions of the model and sort by version number
+        # Search for all versions of the model
         model_versions = client.search_model_versions(f"name='{MODEL_NAME}'")
         if not model_versions:
             raise Exception(f"No versions found for {MODEL_NAME}")
@@ -40,7 +40,13 @@ def load_latest_model():
         if current_version != str(latest_version):
             model_uri = f"models:/{MODEL_NAME}/{latest_version}"
             logger.info(f"Loading model from {model_uri}")
-            model = mlflow.pytorch.load_model(model_uri)
+            try:
+                model = mlflow.pytorch.load_model(model_uri)
+            except mlflow.exceptions.MlflowException as e:
+                if "Model does not have the \"pytorch\" flavor" in str(e):
+                    logger.error(f"Model version {latest_version} lacks PyTorch flavor. Skipping.")
+                    return
+                raise
             current_model = YOLO(model)  # Wrap for YOLO
             current_version = str(latest_version)
             logger.info(f"Loaded model version {latest_version} for {MODEL_NAME}")
@@ -48,7 +54,7 @@ def load_latest_model():
             logger.info(f"Model version {latest_version} already loaded")
     except Exception as e:
         logger.error(f"Failed to load latest model: {str(e)}")
-        raise
+        # Don't raise, allow app to continue with previous model (if any)
 
 # Health check function
 def check_mlflow_connectivity():
@@ -99,6 +105,8 @@ async def health_check():
 @app.post("/blur_license_plate")
 async def blur_license_plate(file: UploadFile = File(...)):
     try:
+        if current_model is None:
+            raise HTTPException(status_code=503, detail="No model loaded")
         img_data = await file.read()
         img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
