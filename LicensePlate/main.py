@@ -1,5 +1,4 @@
 from ultralytics import YOLO
-import ultralytics
 import torch
 import mlflow
 import os
@@ -36,8 +35,12 @@ def main():
     torch.cuda.empty_cache()
     gc.collect()
 
-    mlflow.set_tracking_uri('http://127.0.0.1:5000')
+    remote_server_uri = "http://ec2-13-215-137-215.ap-southeast-1.compute.amazonaws.com:5000"
+    mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_experiment("YOLOv8-LicensePlate-Detection")
+
+    # Unique run name to avoid MLflow param overwrite conflicts
+    run_name = f"lp-detector-{int(time.time())}"
 
     # Paths
     data_yaml_path = "synthetic_data/data.yaml"
@@ -55,11 +58,7 @@ def main():
         "name": run_name,
     }
 
-    run_name = f"lp-detector"
-    params["name"] = run_name  # Ensure param consistency
-    output_dir = os.path.abspath(f"runs/detect/{run_name}")
-
-    with mlflow.start_run(run_name=f"{run_name}_trainlog") as run:
+    with mlflow.start_run(run_name=run_name) as run:
         mlflow.set_tags({
             "project": "License Plate Detection",
             "framework": "YOLOv8",
@@ -76,7 +75,7 @@ def main():
             batch=params["batch"],
             workers=params["workers"],
             name=params["name"],
-            plots=False,
+            plots=False
         )
         # Log metrics from results object
         if hasattr(results, 'metrics'):
@@ -117,6 +116,7 @@ def main():
                 print(f"Error reading or logging results.csv: {e}")
         else:
             print("results.csv not found.")
+        
         log_system_metrics()
         time.sleep(15)
 if __name__ == "__main__":
