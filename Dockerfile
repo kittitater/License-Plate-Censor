@@ -9,7 +9,7 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 COPY serve_model_API.py .
 ENV MLFLOW_TRACKING_URI=http://127.0.0.1:5000
-ENV MODEL_NAME=YOLO_LicensePlate
+ENV MODEL_NAME=YOLOv8-LicensePlate-Detection
 ENV MODEL_CHECK_INTERVAL=300
 EXPOSE 3000
 CMD ["uvicorn", "serve_model_API:app", "--host", "0.0.0.0", "--port", "3000"]
