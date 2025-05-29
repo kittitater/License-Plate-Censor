@@ -1,1 +1,48 @@
+# Ignore virtual environment
+venv/
+ENV/
+env/
+
+# Ignore system and Python metadata
+__pycache__/
+*.py[cod]
+*.so
+*.dll
+*.dylib
+*.pyd
+
+# Ignore datasets and image folders
+synthetic_data/
+BackgroundImage/
+PlateImage/
+*.zip
+*.rar
+*.tar
+*.tar.gz
+
+# YOLOv8 training results
+runs/
 *.pt
+*.onnx
+
+# Ignore logs and system files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore MLflow temp artifacts and history (optional)
+mlruns/
+mlruns.db
+mlartifacts/
+
+# Ignore environment files
+.env
+.env.*
+
+# Allow specific files if needed (uncomment and modify if needed)
+#!synthetic_data/data.yaml
