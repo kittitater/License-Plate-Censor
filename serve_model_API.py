@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from ultralytics import YOLO
 import mlflow
@@ -25,6 +26,15 @@ mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 # Global variables for model and version
 current_model = None
 current_version = None
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://kittitater.github.io"],  # Allows all origins (replace with specific origins for production)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 def load_latest_model():
     global current_model, current_version
