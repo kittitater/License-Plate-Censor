@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>License Plate Censor - Testing Client</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* CSS for loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #000;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Ensure modal is visible */
+    #errorModal.show {
+      display: flex !important;
+    }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen p-6 font-sans">
+  <div class="w-full max-w-screen-2xl mx-auto grid grid-cols-10 gap-6">
+    <!-- LEFT COLUMN -->
+    <div class="col-span-10 md:col-span-4 space-y-6 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
+      <h1 class="text-2xl font-semibold tracking-tight">License Plate Censor - Testing Client</h1>
+      <p class="text-sm text-gray-400">Test your API endpoint with image input</p>
+
+      <!-- API Base URL -->
+      <div class="space-y-1.5">
+        <label for="apiUrl" class="text-sm font-medium text-gray-300">API Base URL</label>
+        <input id="apiUrl" type="url" placeholder="e.g. https://api.example.com"
+          class="w-full rounded-lg border border-zinc-700 bg-neutral-800 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-white"
+        />
+      </div>
+
+      <!-- API Health -->
+      <div class="flex items-center space-x-2 text-sm">
+        <span class="text-gray-300">API Health Check:</span>
+        <span id="apiStatus" class="text-gray-400">🔍 Waiting for API URL...</span>
+      </div>
+
+      <!-- API Path + Upload Image (50:50 side-by-side layout) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Model API Path -->
+        <div class="space-y-1.5">
+          <label for="apiPath" class="text-sm font-medium text-gray-300">Model API Path</label>
+          <input id="apiPath" type="text" placeholder="/predict"
+            class="w-full rounded-lg border border-zinc-700 bg-neutral-800 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-white"
+          />
+        </div>
+
+        <!-- Upload Image -->
+        <div class="space-y-1.5">
+          <label for="imageInput" class="text-sm font-medium text-gray-300">Upload Image</label>
+          <div class="relative">
+            <input id="imageInput" type="file" accept="image/*"
+              class="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            <div
+              class="bg-white text-black text-sm font-medium text-center py-2 px-4 rounded-lg cursor-pointer hover:bg-gray-300 transition">
+              Choose File
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button id="submitBtn"
+        class="w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-gray-300 flex items-center justify-center">
+        Censor It!
+      </button>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-span-10 md:col-span-6 space-y-10 rounded-2xl border border-zinc-700 bg-neutral-900 p-6 shadow-xl">
+      <!-- Original Image -->
+      <div>
+        <h2 class="text-lg font-semibold mb-2">🖼️ Uploaded Image (without license censored)</h2>
+        <img id="previewImage"
+          class="max-w-full max-h-[350px] rounded-xl border border-gray-600 cursor-pointer object-contain mx-auto hidden"
+          alt="Uploaded Image" />
+      </div>
+
+      <!-- Output Image -->
+      <div id="outputContainer" class="hidden">
+        <h2 class="text-lg font-semibold mb-2">🛡️ License Censored Image</h2>
+        <img id="outputImage"
+          class="max-w-full max-h-[350px] rounded-xl border border-gray-600 cursor-pointer object-contain mx-auto"
+          alt="Processed Output Image" />
+      </div>
+    </div>
+  </div>
+
+  <footer class="rounded-lg shadow-sm dark:bg-gray-900 m-4">
+    <hr class="mt-6 border-gray-600 sm:mx-auto dark:border-gray-700 lg:mt-8 lg:mb-6" />
+    <span class="block text-sm text-gray-600 sm:text-center dark:text-gray-400">© 2025 <a href="https://kittitater.github.io/License-Plate-Sensoring/" class="hover:underline">License Plate Censor™</a>. All Rights Reserved.</span>
+  </footer>
+
+  <!-- Image Modal -->
+  <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-90">
+    <img id="modalImage" class="max-w-[90%] max-h-[90%] rounded-xl border border-white shadow-lg" />
+  </div>
+
+  <!-- Error Modal (replaces all alerts) -->
+  <div id="errorModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-75">
+    <div class="bg-neutral-900 rounded-xl p-6 max-w-md w-full border border-zinc-700 shadow-xl">
+      <h3 id="errorTitle" class="text-lg font-semibold text-white mb-4">Error</h3>
+      <p id="errorMessage" class="text-gray-300 mb-6">An error occurred.</p>
+      <button id="closeErrorModal"
+        class="w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-gray-300">
+        OK
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const apiUrlInput = document.getElementById("apiUrl");
+    const apiPathInput = document.getElementById("apiPath");
+    const imageInput = document.getElementById("imageInput");
+    const previewImage = document.getElementById("previewImage");
+    const outputImage = document.getElementById("outputImage");
+    const outputContainer = document.getElementById("outputContainer");
+    const submitBtn = document.getElementById("submitBtn");
+    const apiStatus = document.getElementById("apiStatus");
+    const imageModal = document.getElementById("imageModal");
+    const modalImage = document.getElementById("modalImage");
+    const errorModal = document.getElementById("errorModal");
+    const errorTitle = document.getElementById("errorTitle");
+    const errorMessage = document.getElementById("errorMessage");
+    const closeErrorModal = document.getElementById("closeErrorModal");
+    const MAX_FILE_SIZE_MB = 2; // Set to 2MB to avoid 413 error
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+    function joinUrl(base, path) {
+      return base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");
+    }
+
+    function showErrorModal(title, message) {
+      console.log(`Showing modal: ${title} - ${message}`); // Debug: Confirm modal trigger
+      if (errorModal && errorTitle && errorMessage) {
+        errorTitle.textContent = title;
+        errorMessage.textContent = message;
+        errorModal.classList.remove("hidden");
+        errorModal.classList.add("show");
+      } else {
+        console.error("Error modal elements not found");
+        alert(`${title}: ${message}`); // Fallback to alert if modal fails
+      }
+    }
+
+    async function checkAPIHealth(baseUrl) {
+      const healthUrl = joinUrl(baseUrl, "/health");
+      try {
+        const res = await fetch(healthUrl);
+        const data = await res.json();
+        apiStatus.textContent = data.status === "healthy" ? "✅ API is running" : "⚠️ API health check failed";
+      } catch {
+        apiStatus.textContent = "❌ API unreachable";
+      }
+    }
+
+    apiUrlInput.addEventListener("blur", () => {
+      const url = apiUrlInput.value.trim();
+      if (url) {
+        apiStatus.textContent = "⏳ Checking health...";
+        checkAPIHealth(url);
+      } else {
+        apiStatus.textContent = "🔍 Waiting for API URL...";
+      }
+    });
+
+    imageInput.addEventListener("change", () => {
+      console.log("Image input changed"); // Debug: Confirm event fires
+      const file = imageInput.files[0];
+      if (!file) {
+        console.log("No file selected");
+        previewImage.classList.add("hidden");
+        return;
+      }
+
+      console.log(`File size: ${file.size} bytes (${(file.size / (1024 * 1024)).toFixed(2)} MB)`); // Debug: Log file size
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        console.log(`File exceeds ${MAX_FILE_SIZE_MB}MB, showing modal`);
+        showErrorModal("File Size Too Large", `Please upload an image smaller than ${MAX_FILE_SIZE_MB}MB.`);
+        imageInput.value = ""; // Clear the input
+        previewImage.classList.add("hidden");
+        return;
+      }
+
+      // Proceed with preview if file size is okay
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        console.log("FileReader loaded, displaying preview");
+        previewImage.src = e.target.result;
+        previewImage.classList.remove("hidden");
+      };
+      reader.onerror = () => {
+        console.error("FileReader error");
+        showErrorModal("Error", "Error reading the image file. Please try another image.");
+      };
+      reader.readAsDataURL(file);
+    });
+
+    closeErrorModal.addEventListener("click", () => {
+      console.log("Closing error modal"); // Debug: Confirm close
+      errorModal.classList.add("hidden");
+      errorModal.classList.remove("show");
+    });
+
+    errorModal.addEventListener("click", (e) => {
+      if (e.target === errorModal) {
+        console.log("Closing error modal via background click"); // Debug: Confirm close
+        errorModal.classList.add("hidden");
+        errorModal.classList.remove("show");
+      }
+    });
+
+    submitBtn.addEventListener("click", async () => {
+      const apiUrl = apiUrlInput.value.trim();
+      const apiPath = apiPathInput.value.trim();
+      const file = imageInput.files[0];
+
+      if (!apiUrl || !apiPath) {
+        showErrorModal("Error", "Please enter both API base URL and path.");
+        return;
+      }
+
+      if (!file) {
+        showErrorModal("Error", "Please select an image to upload.");
+        return;
+      }
+
+      // Disable button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span>Censoring...';
+
+      const fullUrl = joinUrl(apiUrl, apiPath);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch(fullUrl, {
+          method: "POST",
+          body: formData
+        });
+        if (!res.ok) {
+          const errorData = await res.text();
+          if (res.status === 413) {
+            console.log("413 Request Entity Too Large received");
+            showErrorModal("File Size Too Large", `Image is too large for the serverEK. Please upload an image smaller than ${MAX_FILE_SIZE_MB}MB.`);
+          } else {
+            showErrorModal("Error", `Please try again or upload a different image: ${errorData}`);
+          }
+          return;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        outputImage.src = objectUrl;
+        outputContainer.classList.remove("hidden");
+      } catch (error) {
+        console.error("Fetch error:", error);
+        showErrorModal("Error", "Please try again or upload a different image.");
+      } finally {
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = "Censor It!";
+      }
+    });
+
+    function openModal(src) {
+      modalImage.src = src;
+      imageModal.classList.remove("hidden");
+      imageModal.classList.add("flex");
+    }
+
+    previewImage.addEventListener("click", () => openModal(previewImage.src));
+    outputImage.addEventListener("click", () => openModal(outputImage.src));
+    imageModal.addEventListener("click", () => {
+      imageModal.classList.add("hidden");
+      imageModal.classList.remove("flex");
+    });
+  </script>
+</body>
+</html>
