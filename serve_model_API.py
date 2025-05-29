@@ -130,7 +130,7 @@ async def health_check():
         status_code=200 if health_status["status"] == "healthy" else 503
     )
 
-@app.post("/blur_license_plate")
+@app.post("/censor-license-plate")
 async def blur_license_plate(file: UploadFile = File(...)):
     try:
         if current_model is None:
