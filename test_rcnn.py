@@ -10,8 +10,8 @@ from torchvision.transforms import functional as F
 import torchvision
 
 # CONFIG
-IMAGE_PATH = "car3.jpg"  # เปลี่ยนเป็น path รูปของคุณ
-MODEL_PATH = r"runs/fasterrcnn/fasterrcnn-lp-detector-1748531370/fasterrcnn_model.pt" #1748459263, 1748463367, 1748500118
+IMAGE_PATH = ".jpg"  #PATH your image to detect license plate
+MODEL_PATH = r"model.pt"
 CLASS_NAMES = ['license_plate']
 
 # BUILD MODEL
