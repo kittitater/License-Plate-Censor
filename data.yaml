@@ -1,0 +1,4 @@
+train: D:\Pond\License-Plate-Censor\synthetic_data\train\images
+val: D:\Pond\License-Plate-Censor\synthetic_data\testval\images
+nc: 1
+names: ['license_plate']
