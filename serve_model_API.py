@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # MLflow configuration
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://ec2-13-215-137-215.ap-southeast-1.compute.amazonaws.com:5000")
 MODEL_NAME = os.getenv("MODEL_NAME", "LicensePlate-Detector")
 CHECK_INTERVAL = int(os.getenv("MODEL_CHECK_INTERVAL", 300))  # 5 minutes
 
@@ -30,7 +30,7 @@ current_version = None
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kittitater.github.io"],  # Allows all origins (replace with specific origins for production)
+    allow_origins=["https://kittitater.github.io","http://127.0.0.1:5500"],  # Allows all origins (replace with specific origins for production)
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
@@ -50,14 +50,32 @@ def load_latest_model():
         if current_version != str(latest_version):
             model_uri = f"models:/{MODEL_NAME}/{latest_version}"
             logger.info(f"Loading model from {model_uri}")
-            try:
-                model = mlflow.pytorch.load_model(model_uri)
-            except mlflow.exceptions.MlflowException as e:
-                if "Model does not have the \"pytorch\" flavor" in str(e):
-                    logger.error(f"Model version {latest_version} lacks PyTorch flavor. Skipping.")
-                    return
-                raise
-            current_model = YOLO(model)  # Wrap for YOLO
+            
+            # Download model artifacts
+            model_path = mlflow.artifacts.download_artifacts(model_uri)
+            logger.info(f"Artifact directory: {model_path}")
+            logger.info(f"Directory contents: {os.listdir(model_path)}")
+            
+            # Search for best.pt recursively
+            pt_file_path = None
+            for root, _, files in os.walk(model_path):
+                if "best.pt" in files:
+                    pt_file_path = os.path.join(root, "best.pt")
+                    break
+            
+            # Verify the .pt file exists
+            if not pt_file_path or not os.path.exists(pt_file_path):
+                # Log all files for debugging
+                all_files = []
+                for root, _, files in os.walk(model_path):
+                    for file in files:
+                        all_files.append(os.path.join(root, file))
+                logger.error(f"All files in artifacts: {all_files}")
+                raise Exception(f"No best.pt file found in artifacts for {MODEL_NAME} version {latest_version}")
+            
+            logger.info(f"Loading YOLO model from {pt_file_path}")
+            # Load the YOLO model from the .pt file
+            current_model = YOLO(pt_file_path)
             current_version = str(latest_version)
             logger.info(f"Loaded model version {latest_version} for {MODEL_NAME}")
         else:
@@ -117,20 +135,30 @@ async def blur_license_plate(file: UploadFile = File(...)):
     try:
         if current_model is None:
             raise HTTPException(status_code=503, detail="No model loaded")
+        
         img_data = await file.read()
         img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise HTTPException(status_code=400, detail="Invalid image file")
-        
+
         results = current_model(img)
+
+        h, w = img.shape[:2]
         for box in results[0].boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
+            x1, x2 = max(0, min(x1, w)), max(0, min(x2, w))
+            y1, y2 = max(0, min(y1, h)), max(0, min(y2, h))
+
             roi = img[y1:y2, x1:x2]
-            roi = cv2.GaussianBlur(roi, (23, 23), 30)
+            roi = cv2.GaussianBlur(roi, (51, 51), 60)
             img[y1:y2, x1:x2] = roi
-        
+
+            # Draw green rectangle border
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
         _, img_encoded = cv2.imencode('.jpg', img)
         return StreamingResponse(BytesIO(img_encoded.tobytes()), media_type="image/jpeg")
+
     except Exception as e:
         logger.error(f"Inference error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -116,7 +116,7 @@
       try {
         const res = await fetch(healthUrl);
         const data = await res.json();
-        apiStatus.textContent = data.status === "ok" ? "✅ API is running" : "⚠️ API health check failed";
+        apiStatus.textContent = data.status === "healthy" ? "✅ API is running" : "⚠️ API health check failed";
       } catch {
         apiStatus.textContent = "❌ API unreachable";
       }
