@@ -46,3 +46,4 @@ mlartifacts/
 
 # Allow specific files if needed (uncomment and modify if needed)
 #!synthetic_data/data.yaml
+/YOLO/synthetic_data
